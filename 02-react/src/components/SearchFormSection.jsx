@@ -1,17 +1,21 @@
-import { useId } from "react"
+import styles from "./SearchForm.module.css"
+import { useId, useState } from "react"
 
-export function SearchFormSection ({ onTextFilter, onSearch }) {
+export function SearchFormSection({ onSearch }) {
   const idText = useId()
   const idTechnology = useId()
   const idLocation = useId()
   const idExperienceLevel = useId()
 
+  const [isFocused, setIsFocused] = useState(false)
+
   const handleSubmit = (event) => {
     event.preventDefault()
-    
+
     const formData = new FormData(event.target)
 
     const filters = {
+      text: formData.get(idText),
       technology: formData.get(idTechnology),
       location: formData.get(idLocation),
       experienceLevel: formData.get(idExperienceLevel)
@@ -19,19 +23,16 @@ export function SearchFormSection ({ onTextFilter, onSearch }) {
 
     onSearch(filters)
   }
-
-  const handleTextChange = (event) => {
-    const text = event.target.value
-    onTextFilter(text)
-  }
-
   return (
-    <section className="jobs-search">
+    <section className={styles.jobsSearch}>
       <h1>Encuentra tu próximo trabajo</h1>
       <p>Explora miles de oportunidades en el sector tecnológico.</p>
 
       <form onSubmit={handleSubmit} id="empleos-search-form" role="search">
-        <div className="search-bar">
+        <div className={styles.searchBar} style={{
+          border: isFocused ? '2px solid #0066ff' : '1px solid #e0e0e0',
+          transition: 'border 0.2s ease'
+        }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"
             className="icon icon-tabler icons-tabler-outline icon-tabler-search">
@@ -40,17 +41,29 @@ export function SearchFormSection ({ onTextFilter, onSearch }) {
             <path d="M21 21l-6 -6" />
           </svg>
 
-          
+
           <input
             name={idText} id="empleos-search-input" type="text"
             placeholder="Buscar trabajos, empresas o habilidades"
-            onChange={handleTextChange}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
           />
-          
+
           <button type="submit" style={{ position: 'absolute', right: '4px' }}>Buscar</button>
         </div>
 
-        <div className="search-filters">
+        {isFocused && (
+          <p style={{
+            fontSize: '0.9rem',
+            color: '#666',
+            marginTop: '8px',
+            marginBottom: '8px'
+          }}>
+            💡 Prueba buscar por título de trabajo, tecnología o nombre de empresa
+          </p>
+        )}
+
+        <div className={styles.searchFilters}>
           <select name={idTechnology} id="filter-technology">
             <option value="">Tecnología</option>
             <optgroup label="Tecnologías populares">
