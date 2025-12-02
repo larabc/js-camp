@@ -1,0 +1,18 @@
+.link {
+    text-decoration: none;
+    color: #fff;
+    margin: 0 5px;
+    padding: 5px 10px;
+    transition: all 0.2s;
+}
+
+.active {
+    text-decoration: underline;
+    font-weight: bold;
+    color: #0066cc;
+}
+
+
+.link:hover {
+    color: #0066cc;
+}
