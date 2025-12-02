@@ -1,5 +1,5 @@
 import { useRouter } from './hooks/useRouter.jsx'
-import { Route } from './components/Route.jsx'
+import { Routes, Route } from 'react-router'
 import { Header } from './components/Header.jsx'
 import { Footer } from './components/Footer.jsx'
 
@@ -21,9 +21,12 @@ function App() {
   return (
     <>
       <Header />
-      <Route path='/' component={HomePage} />
-      <Route path='/search' component={SearchPage} />
-      <Route path='/contact' component={ContactPage} />
+      <Routes>
+        <Route path='/' element={<HomePage />} />
+        <Route path='/search' element={<SearchPage />} />
+        <Route path='/contact' element={<ContactPage />} />
+        <Route path='*' element={<NotFoundPage />} />
+      </Routes>
       <Footer />
     </>
   )
