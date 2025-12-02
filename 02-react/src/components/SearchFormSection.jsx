@@ -1,38 +1,120 @@
-import styles from "./SearchForm.module.css"
-import { useId, useState } from "react"
+import { useId, useState, useRef } from "react"
 
-export function SearchFormSection({ onSearch }) {
-  const idText = useId()
-  const idTechnology = useId()
-  const idLocation = useId()
-  const idExperienceLevel = useId()
-
-  const [isFocused, setIsFocused] = useState(false)
+const useSearchForm = ({ idTechnology, idLocation, idExperienceLevel, idText, onSearch, onTextFilter, initialFilters }) => {
+  const timeoutId = useRef(null)
+  const [searchText, setSearchText] = useState("")
+  const [activeFilters, setActiveFilters] = useState(initialFilters || {
+    technology: '',
+    location: '',
+    experienceLevel: ''
+  })
 
   const handleSubmit = (event) => {
     event.preventDefault()
 
-    const formData = new FormData(event.target)
+    const formData = new FormData(event.currentTarget)
+
+    if (event.target.name === idText) {
+      return // ya lo manejamos en onChange
+    }
 
     const filters = {
-      text: formData.get(idText),
       technology: formData.get(idTechnology),
       location: formData.get(idLocation),
       experienceLevel: formData.get(idExperienceLevel)
     }
 
+    setActiveFilters(filters)
     onSearch(filters)
   }
+
+  const handleTextChange = (event) => {
+    const text = event.target.value
+    setSearchText(text) // actualizamos el input inmediatamente
+
+    // Debounce: Cancelar el timeout anterior
+    if (timeoutId.current) {
+      clearTimeout(timeoutId.current)
+    }
+
+    timeoutId.current = setTimeout(() => {
+      onTextFilter(text)
+    }, 500)
+  }
+
+  const hasActiveFilters = () => {
+    return Object.values(activeFilters).some(value => value !== '')
+  }
+
+
+  const clearAllFilters = () => {
+    setActiveFilters({
+      technology: '',
+      location: '',
+      experienceLevel: ''
+    })
+    setSearchText('')
+    onSearch({
+      technology: '',
+      location: '',
+      experienceLevel: ''
+    })
+    onTextFilter('')
+  }
+
+  return {
+    searchText,
+    handleSubmit,
+    handleTextChange,
+    hasActiveFilters: hasActiveFilters(),
+    clearAllFilters
+  }
+
+}
+
+export function SearchFormSection({ onTextFilter, onSearch, initialText, initialFilters }) {
+  const idText = useId()
+  const idTechnology = useId()
+  const idLocation = useId()
+  const idExperienceLevel = useId()
+
+  const inputRef = useRef()
+
+  const {
+    handleSubmit,
+    handleTextChange,
+    hasActiveFilters,
+    clearAllFilters
+  } = useSearchForm({ idTechnology, idLocation, idExperienceLevel, idText, onSearch, onTextFilter, initialFilters })
+
+  const handleClearInput = (event) => {
+    event.preventDefault()
+
+    inputRef.current.value = ""
+    onTextFilter("")
+  }
+
+  const handleClearAll = (event) => {
+    event.preventDefault();
+    inputRef.current.value = ""
+
+    const form = document.getElementById('empleos-search-form')
+    form.reset()
+
+    localStorage.removeItem('jobFilters')
+    localStorage.removeItem('jobSearchText')
+    clearAllFilters()
+
+  }
+
   return (
-    <section className={styles.jobsSearch}>
+    <section className="jobs-search">
       <h1>Encuentra tu próximo trabajo</h1>
       <p>Explora miles de oportunidades en el sector tecnológico.</p>
 
-      <form onSubmit={handleSubmit} id="empleos-search-form" role="search">
-        <div className={styles.searchBar} style={{
-          border: isFocused ? '2px solid #0066ff' : '1px solid #e0e0e0',
-          transition: 'border 0.2s ease'
-        }}>
+      <form onChange={handleSubmit} id="empleos-search-form" role="search">
+
+        <div className="search-bar">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"
             className="icon icon-tabler icons-tabler-outline icon-tabler-search">
@@ -41,30 +123,21 @@ export function SearchFormSection({ onSearch }) {
             <path d="M21 21l-6 -6" />
           </svg>
 
-
           <input
+            ref={inputRef}
             name={idText} id="empleos-search-input" type="text"
             placeholder="Buscar trabajos, empresas o habilidades"
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onChange={handleTextChange}
+            defaultValue={initialText}
           />
 
-          <button type="submit" style={{ position: 'absolute', right: '4px' }}>Buscar</button>
+          <button onClick={handleClearInput}>
+            ✖︎
+          </button>
         </div>
 
-        {isFocused && (
-          <p style={{
-            fontSize: '0.9rem',
-            color: '#666',
-            marginTop: '8px',
-            marginBottom: '8px'
-          }}>
-            💡 Prueba buscar por título de trabajo, tecnología o nombre de empresa
-          </p>
-        )}
-
-        <div className={styles.searchFilters}>
-          <select name={idTechnology} id="filter-technology">
+        <div className="search-filters">
+          <select name={idTechnology} id="filter-technology" key={initialFilters?.technology || ""}>
             <option value="">Tecnología</option>
             <optgroup label="Tecnologías populares">
               <option value="javascript">JavaScript</option>
@@ -82,7 +155,7 @@ export function SearchFormSection({ onSearch }) {
             <option value="php">PHP</option>
           </select>
 
-          <select name={idLocation} id="filter-location">
+          <select name={idLocation} id="filter-location" key={initialFilters?.location || ""}>
             <option value="">Ubicación</option>
             <option value="remoto">Remoto</option>
             <option value="cdmx">Ciudad de México</option>
@@ -91,13 +164,18 @@ export function SearchFormSection({ onSearch }) {
             <option value="barcelona">Barcelona</option>
           </select>
 
-          <select name={idExperienceLevel} id="filter-experience-level">
+          <select name={idExperienceLevel} id="filter-experience-level" key={initialFilters?.experienceLevel || ""}>
             <option value="">Nivel de experiencia</option>
             <option value="junior">Junior</option>
             <option value="mid">Mid-level</option>
             <option value="senior">Senior</option>
             <option value="lead">Lead</option>
           </select>
+          {hasActiveFilters && (
+            <button id="clear-filters-button" onClick={handleClearAll}>
+              Limpiar filtros
+            </button>
+          )}
         </div>
       </form>
 
